@@ -31,37 +31,40 @@
             justify-content: center;
             min-height: 100vh;
             color: var(--text-color);
-            overflow: hidden;
+            overflow-y: auto;
+            padding: 30px 10px;
         }
 
         .game-container {
             position: relative;
             background: var(--card-bg);
-            padding: 20px;
+            padding: 15px;
             border-radius: 16px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            width: auto;
+            max-width: 340px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
+            gap: 5px;
         }
 
         .logo {
-            max-width: 250px;
+            max-width: 140px;
             height: auto;
             filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));
         }
 
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 5px;
+            font-size: 1.8rem;
+            margin-bottom: 2px;
             background: linear-gradient(to right, var(--snake-head), var(--accent-color));
             -webkit-background-clip: text;
             background-clip: text;
@@ -71,15 +74,42 @@
         }
 
         .score-board {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            padding: 10px 20px;
-            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
+            gap: 20px;
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-item span:first-child {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #score,
+        #highScore {
+            color: var(--snake-head);
+            font-size: 1.5rem;
+        }
+
+        .canvas-area {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
         }
 
         #gameCanvas {
@@ -91,9 +121,9 @@
         }
 
         .controls-hint {
-            margin-top: 20px;
+            margin-top: 10px;
             color: #94a3b8;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             text-align: center;
         }
 
@@ -103,12 +133,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.95);
             display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 16px;
+            border-radius: 6px;
             z-index: 10;
             animation: fadeIn 0.3s ease;
         }
@@ -124,9 +154,10 @@
         }
 
         .game-over-overlay h2 {
-            font-size: 3rem;
+            font-size: 2.2rem;
             color: var(--food-color);
-            margin-bottom: 10px;
+            margin-bottom: 5px;
+            text-align: center;
         }
 
         .btn-restart {
@@ -155,24 +186,32 @@
 
 <body>
 
-    <div class="header">
-        <img src="https://res.cloudinary.com/dprv6nxj1/image/upload/v1772762518/LOGO-TALENTO-ORIENTE-COLOR-SOMBRA_Nero_AI_Background_Remover_transparent_rejncg.png"
-            alt="Talento Oriente Logo" class="logo">
-        <h1>SNAKE</h1>
-    </div>
-
     <div class="game-container">
-        <div class="score-board">
-            <span>PUNTOS:</span>
-            <span id="score">0</span>
+        <div class="header">
+            <img src="https://res.cloudinary.com/dprv6nxj1/image/upload/v1772762518/LOGO-TALENTO-ORIENTE-COLOR-SOMBRA_Nero_AI_Background_Remover_transparent_rejncg.png"
+                alt="Talento Oriente Logo" class="logo">
+            <h1>SNAKE</h1>
         </div>
 
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="score-board">
+            <div class="score-item">
+                <span>PUNTOS:</span>
+                <span id="score">0</span>
+            </div>
+            <div class="score-item">
+                <span>RÉCORD:</span>
+                <span id="highScore">0</span>
+            </div>
+        </div>
 
-        <div class="game-over-overlay" id="gameOver">
-            <h2>FIN DEL JUEGO</h2>
-            <p>Tu puntuación: <span id="finalScore">0</span></p>
-            <button class="btn-restart" onclick="resetGame()">REINTENTAR</button>
+        <div class="canvas-area">
+            <canvas id="gameCanvas" width="300" height="300"></canvas>
+
+            <div class="game-over-overlay" id="gameOver">
+                <h2>FIN DEL JUEGO</h2>
+                <p>Tu puntuación: <span id="finalScore">0</span></p>
+                <button class="btn-restart" onclick="resetGame()">REINTENTAR</button>
+            </div>
         </div>
     </div>
 
@@ -184,13 +223,17 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
         const finalScoreElement = document.getElementById('finalScore');
         const gameOverOverlay = document.getElementById('gameOver');
 
-        // Configuración
-        const gridSize = 20;
-        const tileCount = canvas.width / gridSize;
         let score = 0;
+        let highScore = localStorage.getItem('snakeHighScore') || 0;
+        highScoreElement.innerText = highScore;
+
+        // Configuración
+        const gridSize = 15;
+        const tileCount = canvas.width / gridSize;
         let dx = 0;
         let dy = 0;
         let snake = [
@@ -201,6 +244,17 @@
         let food = { x: 5, y: 5 };
         let gameActive = true;
         let gameLoop;
+        let snakeColor = '#10b981';
+        let snakeHeadColor = '#34d399';
+
+        const colors = [
+            { body: '#10b981', head: '#34d399' }, // Verde (Original)
+            { body: '#3b82f6', head: '#60a5fa' }, // Azul
+            { body: '#8b5cf6', head: '#a78bfa' }, // Violeta
+            { body: '#f59e0b', head: '#fbbf24' }, // Ámbar
+            { body: '#ec4899', head: '#f472b6' }, // Rosa
+            { body: '#06b6d4', head: '#22d3ee' }  // Cian
+        ];
 
         // Iniciar el juego
         function init() {
@@ -254,8 +308,15 @@
 
                 score += 10;
                 updateScore();
+                changeSnakeColor();
                 spawnFood();
             }
+        }
+
+        function changeSnakeColor() {
+            const randomIndex = Math.floor(Math.random() * colors.length);
+            snakeColor = colors[randomIndex].body;
+            snakeHeadColor = colors[randomIndex].head;
         }
 
         function spawnFood() {
@@ -293,7 +354,7 @@
             // Serpiente
             snake.forEach((segment, index) => {
                 const isHead = index === 0;
-                ctx.fillStyle = isHead ? '#34d399' : '#10b981';
+                ctx.fillStyle = isHead ? snakeHeadColor : snakeColor;
 
                 // Efecto de bordes redondeados para el cuerpo
                 const radius = isHead ? 6 : 4;
@@ -330,7 +391,7 @@
             const foodX = food.x * gridSize + gridSize / 2;
             const foodY = food.y * gridSize + gridSize / 2;
             ctx.beginPath();
-            ctx.arc(foodX, foodY, gridSize / 2 - 4, 0, Math.PI * 2);
+            ctx.arc(foodX, foodY, gridSize / 2 - 3, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
         }
@@ -353,6 +414,15 @@
         function endGame() {
             gameActive = false;
             finalScoreElement.innerText = score;
+
+            // Actualizar récord si es necesario
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snakeHighScore', highScore);
+                highScoreElement.innerText = highScore;
+                finalScoreElement.innerHTML = `${score} <br> <span style="color: #34d399; font-size: 1.2rem;">¡NUEVO RÉCORD!</span>`;
+            }
+
             gameOverOverlay.style.display = 'flex';
             clearInterval(gameLoop);
         }
@@ -363,6 +433,8 @@
                 { x: 10, y: 11 },
                 { x: 10, y: 12 }
             ];
+            snakeColor = '#10b981';
+            snakeHeadColor = '#34d399';
             gameActive = true;
             gameOverOverlay.style.display = 'none';
             init();
@@ -370,6 +442,11 @@
 
         // Controles
         window.addEventListener('keydown', (e) => {
+            // Evitar que las flechas desplacen la página
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+            }
+
             switch (e.key) {
                 case 'ArrowUp':
                     if (dy !== 1) { dx = 0; dy = -1; }

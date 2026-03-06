@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Súper Snake - Juego Clásico</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --snake-color: #10b981;
+            --snake-head: #34d399;
+            --food-color: #ef4444;
+            --text-color: #f1f5f9;
+            --accent-color: #3b82f6;
+            --card-bg: rgba(30, 41, 59, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            max-width: 250px;
+            height: auto;
+            filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            background: linear-gradient(to right, var(--snake-head), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .score-board {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        #gameCanvas {
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            background-color: #020617;
+            display: block;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .controls-hint {
+            margin-top: 20px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            z-index: 10;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .game-over-overlay h2 {
+            font-size: 3rem;
+            color: var(--food-color);
+            margin-bottom: 10px;
+        }
+
+        .btn-restart {
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            background-color: var(--snake-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .btn-restart:hover {
+            background-color: var(--snake-head);
+            transform: scale(1.05);
+        }
+
+        .btn-restart:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <img src="https://res.cloudinary.com/dprv6nxj1/image/upload/v1772762518/LOGO-TALENTO-ORIENTE-COLOR-SOMBRA_Nero_AI_Background_Remover_transparent_rejncg.png"
+            alt="Talento Oriente Logo" class="logo">
+        <h1>SNAKE</h1>
+    </div>
+
+    <div class="game-container">
+        <div class="score-board">
+            <span>PUNTOS:</span>
+            <span id="score">0</span>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+        <div class="game-over-overlay" id="gameOver">
+            <h2>FIN DEL JUEGO</h2>
+            <p>Tu puntuación: <span id="finalScore">0</span></p>
+            <button class="btn-restart" onclick="resetGame()">REINTENTAR</button>
+        </div>
+    </div>
+
+    <div class="controls-hint">
+        Usa las flechas del teclado (↑ ↓ ← →) para moverte
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const finalScoreElement = document.getElementById('finalScore');
+        const gameOverOverlay = document.getElementById('gameOver');
+
+        // Configuración
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+        let score = 0;
+        let dx = 0;
+        let dy = 0;
+        let snake = [
+            { x: 10, y: 10 },
+            { x: 10, y: 11 },
+            { x: 10, y: 12 }
+        ];
+        let food = { x: 5, y: 5 };
+        let gameActive = true;
+        let gameLoop;
+
+        // Iniciar el juego
+        function init() {
+            dx = 0;
+            dy = -1; // Comienza moviéndose hacia arriba
+            score = 0;
+            updateScore();
+            spawnFood();
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 100);
+        }
+
+        // Bucle del juego
+        function update() {
+            if (!gameActive) return;
+
+            moveSnake();
+            checkCollision();
+            checkFood();
+            draw();
+        }
+
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head);
+            snake.pop();
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+
+            // Colisión con paredes
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                endGame();
+            }
+
+            // Colisión con sí misma
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    endGame();
+                }
+            }
+        }
+
+        function checkFood() {
+            const head = snake[0];
+            if (head.x === food.x && head.y === food.y) {
+                // Crecer
+                const tail = { ...snake[snake.length - 1] };
+                snake.push(tail);
+
+                score += 10;
+                updateScore();
+                spawnFood();
+            }
+        }
+
+        function spawnFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+
+            // Asegurar que la comida no spawnee dentro de la serpiente
+            for (let segment of snake) {
+                if (food.x === segment.x && food.y === segment.y) {
+                    spawnFood();
+                    break;
+                }
+            }
+        }
+
+        function draw() {
+            // Fondo
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Dibujar rejilla sutil
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            // Serpiente
+            snake.forEach((segment, index) => {
+                const isHead = index === 0;
+                ctx.fillStyle = isHead ? '#34d399' : '#10b981';
+
+                // Efecto de bordes redondeados para el cuerpo
+                const radius = isHead ? 6 : 4;
+                const x = segment.x * gridSize + 1;
+                const y = segment.y * gridSize + 1;
+                const size = gridSize - 2;
+
+                drawRoundedRect(ctx, x, y, size, size, radius);
+
+                if (isHead) {
+                    // Ojos
+                    ctx.fillStyle = 'white';
+                    const eyeSize = 3;
+                    if (dx === 1) { // Derecha
+                        ctx.fillRect(x + size - 6, y + 4, eyeSize, eyeSize);
+                        ctx.fillRect(x + size - 6, y + size - 7, eyeSize, eyeSize);
+                    } else if (dx === -1) { // Izquierda
+                        ctx.fillRect(x + 3, y + 4, eyeSize, eyeSize);
+                        ctx.fillRect(x + 3, y + size - 7, eyeSize, eyeSize);
+                    } else if (dy === 1) { // Abajo
+                        ctx.fillRect(x + 4, y + size - 6, eyeSize, eyeSize);
+                        ctx.fillRect(x + size - 7, y + size - 6, eyeSize, eyeSize);
+                    } else { // Arriba
+                        ctx.fillRect(x + 4, y + 3, eyeSize, eyeSize);
+                        ctx.fillRect(x + size - 7, y + 3, eyeSize, eyeSize);
+                    }
+                }
+            });
+
+            // Comida
+            ctx.fillStyle = '#ef4444';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ef4444';
+            const foodX = food.x * gridSize + gridSize / 2;
+            const foodY = food.y * gridSize + gridSize / 2;
+            ctx.beginPath();
+            ctx.arc(foodX, foodY, gridSize / 2 - 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function updateScore() {
+            scoreElement.innerText = score;
+        }
+
+        function endGame() {
+            gameActive = false;
+            finalScoreElement.innerText = score;
+            gameOverOverlay.style.display = 'flex';
+            clearInterval(gameLoop);
+        }
+
+        function resetGame() {
+            snake = [
+                { x: 10, y: 10 },
+                { x: 10, y: 11 },
+                { x: 10, y: 12 }
+            ];
+            gameActive = true;
+            gameOverOverlay.style.display = 'none';
+            init();
+        }
+
+        // Controles
+        window.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (dy !== 1) { dx = 0; dy = -1; }
+                    break;
+                case 'ArrowDown':
+                    if (dy !== -1) { dx = 0; dy = 1; }
+                    break;
+                case 'ArrowLeft':
+                    if (dx !== 1) { dx = -1; dy = 0; }
+                    break;
+                case 'ArrowRight':
+                    if (dx !== -1) { dx = 1; dy = 0; }
+                    break;
+            }
+        });
+
+        // Iniciar al cargar
+        init();
+    </script>
+</body>
+
+</html>
